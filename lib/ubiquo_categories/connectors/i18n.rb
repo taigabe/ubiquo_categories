@@ -40,8 +40,10 @@ module UbiquoCategories
 
         def self.included(klass)
           klass.send(:extend, ClassMethods)
+          klass.send(:include, InstanceMethods)
           klass.send(:translatable, :name, :description)
           I18n.register_uhooks klass, ClassMethods
+          I18n.register_uhooks klass, InstanceMethods
         end
 
         module ClassMethods
@@ -73,8 +75,23 @@ module UbiquoCategories
               :parent_id => options[:parent_id]
             )
           end
+
         end
 
+        module InstanceMethods
+
+          def uhook_reassign_category_relations
+            if translation = self.translations.first
+              self.category_relations.each do |category_relation|
+                category_relation.reload
+                category_relation.category_id = translation.id
+                category_relation.save
+              end
+            else
+              self.category_relations.destroy_all
+            end
+          end
+        end
       end
 
       module CategorySet
@@ -85,6 +102,7 @@ module UbiquoCategories
         end
 
         module InstanceMethods
+
           # Returns an identifier value for a given +category_name+ in this set
           def uhook_category_identifier_for_name category_name
             self.select_fittest(category_name).content_id rescue 0

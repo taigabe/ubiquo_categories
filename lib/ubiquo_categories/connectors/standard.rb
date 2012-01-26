@@ -7,7 +7,9 @@ module UbiquoCategories
 
         def self.included(klass)
           klass.send(:extend, ClassMethods)
+          klass.send(:include, InstanceMethods)
           Standard.register_uhooks klass, ClassMethods
+          Standard.register_uhooks klass, InstanceMethods
         end
 
         module ClassMethods
@@ -32,6 +34,12 @@ module UbiquoCategories
           end
         end
 
+        module InstanceMethods
+
+          def uhook_reassign_category_relations
+            ::CategoryRelation.all(:conditions => {:category_id => self.id}).each(&:destroy)
+          end
+        end
       end
 
       module CategorySet

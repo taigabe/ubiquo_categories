@@ -169,4 +169,28 @@ class UbiquoCategories::Connectors::StandardTest < ActiveSupport::TestCase
     )
   end
 
+  def test_on_destroy_should_destroy_its_category_relations
+    # setup
+    mock_categories_helper
+    set = create_category_set
+    set.categories << ['ca']
+    category = set.categories.first
+    related = CategoryTestModel.create
+    category_relation = CategoryRelation.create(
+        :category_id => category.id,
+        :related_object_id => related.id,
+        :related_object_type => related.class.to_s,
+        :position => 1,
+        :attr_name => "attrs")
+
+    assert_difference 'Category.count', -1 do
+      assert_difference 'CategoryRelation.count', -1 do
+        assert category.reload.destroy
+      end
+    end
+    assert_raise ActiveRecord::RecordNotFound do
+      category_relation.reload
+    end
+  end
+
 end

@@ -376,6 +376,56 @@ class UbiquoCategories::Connectors::I18nTest < ActiveSupport::TestCase
       )
     end
 
+    def test_on_destroy_should_reassign_relations_if_the_category_have_a_translation_available
+      # setup
+      mock_categories_helper
+      set = create_category_set
+      set.categories << ['ca', {:locale => 'ca'}]
+      category = set.categories.first
+      translation = category.translate('jp', :copy_all => true)
+      translation.save
+      assert_equal 2, set.categories.reload.size
+      related = CategoryTestModel.create
+      category_relation = CategoryRelation.create(
+          :category_id => category.id,
+          :related_object_id => related.id,
+          :related_object_type => related.class.to_s,
+          :position => 1,
+          :attr_name => "attrs")
+
+      assert category.reload.destroy
+      assert category_relation.reload
+      assert_equal translation, category_relation.category
+      assert translation.reload
+      assert translation.category_relations.include?(category_relation)
+    end
+
+    def test_on_destroy_should_reassign_relations_if_the_category_does_not_have_a_translation_available
+      # setup
+      mock_categories_helper
+      set = create_category_set
+      set.categories << ['ca', {:locale => 'ca'}]
+      category = set.categories.first
+      assert_equal 1, set.categories.reload.size
+      related = CategoryTestModel.create
+      category_relation = CategoryRelation.create(
+          :category_id => category.id,
+          :related_object_id => related.id,
+          :related_object_type => related.class.to_s,
+          :position => 1,
+          :attr_name => "attrs")
+
+      assert_difference 'Category.count', -1 do
+        assert_difference 'CategoryRelation.count', -1 do
+          assert category.reload.destroy
+        end
+      end
+      assert_raise ActiveRecord::RecordNotFound do
+        category_relation.reload
+      end
+    end
+
+
     protected
 
     def i18n_categorize attr, options = {}

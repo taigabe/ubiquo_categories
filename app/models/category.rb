@@ -4,6 +4,8 @@ class Category < ActiveRecord::Base
   has_many :category_relations
   belongs_to :parent, :class_name => 'Category'
   has_many :children, :class_name => 'Category', :foreign_key => 'parent_id'
+
+  before_destroy :reassign_category_relations
   
   validates_presence_of :name, :category_set
 
@@ -34,4 +36,11 @@ class Category < ActiveRecord::Base
   def self.alias_for_association association_name
     connection.table_alias_for "#{table_name}_#{association_name}"
   end
+
+  protected
+
+  def reassign_category_relations
+    uhook_reassign_category_relations
+  end
+
 end
