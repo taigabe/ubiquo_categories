@@ -16,16 +16,7 @@ module UbiquoCategories
         categorize_options = object.class.categorize_options(key)
         raise UbiquoCategories::CategorizationNotFoundError unless categorize_options
         options[:set] ||= category_set(categorize_options[:from] || key.to_s.pluralize)
-        categories = uhook_categories_for_set(options[:set], object)
-        selector_type = options[:type].try(:to_sym)
-        categorize_size = categorize_options[:size]
-        max = Ubiquo::Config.context(:ubiquo_categories).get(:max_categories_simple_selector)
-        selector_type ||= case categories.size
-          when 0..max
-            (categorize_size == :many || categorize_size > 1) ? :checkbox : :select
-          else
-            :autocomplete
-        end
+        selector_type, categories = lookup_selector_type(object, categorize_options, options)
         html_options.reverse_merge!({
           :class => "group relation-selector relation-type-#{selector_type}"
         })
@@ -47,6 +38,25 @@ module UbiquoCategories
       end
 
       protected
+
+      def lookup_selector_type(object, categorize_options, options)
+        # we don't need to retrieve all values for autocomplete selector
+        selector_type = options[:type].try(:to_sym)
+        all_categories = []
+        unless selector_type == :autocomplete
+          all_categories = uhook_categories_for_set(options[:set], object)
+          categorize_size = categorize_options[:size]
+          max = Ubiquo::Config.context(:ubiquo_categories).get(:max_categories_simple_selector)
+          selector_type ||= case all_categories.size
+            when 0..max
+              (categorize_size == :many || categorize_size > 1) ? :checkbox : :select
+            else
+              :autocomplete
+          end
+        end
+
+        [selector_type, all_categories]
+      end
 
       def category_set(key)
         CategorySet.find_by_key(key.to_s) ||

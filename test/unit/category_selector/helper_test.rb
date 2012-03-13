@@ -82,6 +82,21 @@ class UbiquoCategories::CategorySelector::HelperTest < ActionView::TestCase
     category_selector 'name', :tags, :object => CategoryTestModel.new
   end
 
+  def test_autocomplete_category_selector_should_not_retrieve_all_categories
+    categorize :tags
+
+    self.expects(:uhook_categories_for_set).never
+    category_selector 'name', :tags, :object => CategoryTestModel.new, :type => :autocomplete    
+  end
+
+  def test_select_and_checkbox_category_selectors_should_retrieve_all_categories
+    categorize :tags
+
+    self.expects(:uhook_categories_for_set).twice.returns([])
+    category_selector 'name', :tags, :object => CategoryTestModel.new, :type => :checkbox
+    category_selector 'name', :tags, :object => CategoryTestModel.new, :type => :select
+  end
+
   def test_category_selector_should_be_select_when_one_possible_category
     categorize :tags
     categorize :city, :size => 1
