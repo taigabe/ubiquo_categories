@@ -208,7 +208,8 @@ var AutoCompleteSelector = Class.create({
       }
     }.bind(klass));
     input_box.observe('blur', function(event) {
-      this.hide_dropdown();
+      //Defer hide because IE triggers blur before click on list items.
+      setTimeout(function(){this.hide_dropdown();}.bind(this),200);
       event.stop();
     }.bind(klass));
     input_box.observe('keydown', function(event) {
@@ -312,9 +313,9 @@ var AutoCompleteSelector = Class.create({
     var hidden_input = $(this.object_name + "_" + this.key + "_autocomplete");
     hidden_input.hide();
     hidden_input.observe('focus', function(event) {
-                           this.input_box.focus();
+                           this.focusOnInput();
                            event.stop();
-                         });
+                         }.bind(this));
     hidden_input.observe('blur', function(event) {
                            this.input_box.blur();
                            event.stop();
@@ -325,7 +326,7 @@ var AutoCompleteSelector = Class.create({
 
   prepareTokenList: function() {
     var klass = this;
-    var token_list = document.createElement('ul');
+    var token_list = $(document.createElement('ul'));
     token_list.addClassName(this.CLASSES.tokenList);
     token_list.observe('click', function(event) {
       var li = this.get_element_from_event(event, 'LI');
@@ -333,7 +334,7 @@ var AutoCompleteSelector = Class.create({
         this.toggle_select_token(li);
         event.stop();
       } else {
-        this.input_box.focus();
+        this.focusOnInput();
         if(this.selected_token) {
           this.deselect_token($(this.selected_token), this.POSITIONS.END);
         }
@@ -366,7 +367,7 @@ var AutoCompleteSelector = Class.create({
   },
 
   prepareDropdown: function() {
-    var dropdown = document.createElement('div');
+    var dropdown = $(document.createElement('div'));
     dropdown.addClassName(this.CLASSES.dropdown);
     this.token_list.insert({after: dropdown});
     dropdown.hide();
@@ -374,7 +375,7 @@ var AutoCompleteSelector = Class.create({
   },
 
   prepareInputToken: function() {
-    var input_token = document.createElement('li');
+    var input_token = $(document.createElement('li'));
     input_token.addClassName(this.CLASSES.inputToken);
     this.token_list.insert(input_token);
     input_token.insert(this.input_box);
@@ -401,6 +402,23 @@ var AutoCompleteSelector = Class.create({
       return false;
     }
   },
+  
+  focusOnInput: function(){
+    var can_show = true;
+    if( this.tokenLimit != null ){
+      if( this.tokenLimit <= this.token_count){
+        can_show=false;
+      }
+    }
+    if( can_show ){
+      this.input_box.show();
+      this.input_box.focus();
+    }else{
+      this.input_box.value="";
+      this.input_box.hide();
+      this.hide_dropdown();
+    }
+  },
 
   // Get an element of a particular type from an event (click/mouseover etc)
   get_element_from_event: function(event, element_type) {
@@ -419,11 +437,11 @@ var AutoCompleteSelector = Class.create({
   // Inner function to a token to the list
   insert_token: function(id, value) {
     var klass = this;
-    var this_token = document.createElement('li');
+    var this_token = $(document.createElement('li'));
     this_token.insert('<p>'+value+'</p>');
     this_token.addClassName(this.CLASSES.token);
     this.input_token.insert({before: this_token});
-    var delete_token_button = document.createElement('span');
+    var delete_token_button = $(document.createElement('span'));
     delete_token_button.insert("x");
     delete_token_button.addClassName(this.CLASSES.tokenDelete);
     delete_token_button.observe('click',function(event) {
@@ -457,7 +475,6 @@ var AutoCompleteSelector = Class.create({
     
     // Clear input box and make sure it keeps focus
     this.input_box.value = "";
-    this.input_box.focus();
     this.selected_dropdown_item = null;
     // Don't show the help dropdown, they've got the idea
     this.hide_dropdown();
@@ -466,10 +483,7 @@ var AutoCompleteSelector = Class.create({
     var new_hidden_input = new Element('input', {type: 'hidden', name: this.object_name+"["+this.key+"][]", id: this.object_name+"_"+this.key+"_"+id, value: value});
     this.hidden_input.insert({after: new_hidden_input});
     this.token_count++;
-    if(this.tokenLimit != null && this.tokenLimit <= this.token_count) {
-      this.input_box.hide();
-      this.hide_dropdown();
-    }
+    this.focusOnInput();
   },
 
   add_token_from_li: function(item) {
@@ -515,8 +529,7 @@ var AutoCompleteSelector = Class.create({
     } else {
       this.token_list.insert(this.input_token);
     }
-    // Show the input box and give it focus again
-    this.input_box.focus();
+    this.focusOnInput();
   },
 
   // Toggle selection of a token in the token list
@@ -542,15 +555,9 @@ var AutoCompleteSelector = Class.create({
     // Delete hidden input
     $(this.object_name+"_"+this.key+"_"+token_data.id).remove();
 
-    // Show the input box and give it focus again
-    this.input_box.focus();
     this.token_count--;
 
-    if (this.tokenLimit != null) {
-      this.input_box.value = "";
-      this.input_box.show();
-      this.input_box.focus();
-    }
+    this.focusOnInput();
   },
   // Hide and clear the results dropdown
   hide_dropdown: function() {
@@ -577,7 +584,7 @@ var AutoCompleteSelector = Class.create({
     var klass = this;
     if(results.length) {
       this.dropdown.update('');
-      var dropdown_ul = document.createElement('ul');
+      var dropdown_ul = $(document.createElement('ul'));
       dropdown_ul.observe('click', function(event) {
         klass.add_token_from_li(klass.get_element_from_event(event, "LI"));
         event.stop();
@@ -595,7 +602,7 @@ var AutoCompleteSelector = Class.create({
       this.dropdown.insert(dropdown_ul);
       for(var i in results) {
         if (results.hasOwnProperty(i)) {
-          var this_li = document.createElement('li');
+          var this_li = $(document.createElement('li'));
           var value = this.highlight_term(results[i][this.queryParam] || results[i]['category'][this.queryParam], query)
           this_li.insert(value);
           dropdown_ul.insert(this_li);
@@ -613,7 +620,11 @@ var AutoCompleteSelector = Class.create({
       }
 
       this.dropdown.show();
-      dropdown_ul.slideDown({duration: 0.3});
+      if(!Prototype.Browser.IE){
+          dropdown_ul.slideDown({duration: 0.3});
+      }else{
+          dropdown_ul.show();
+      }
     } else {
       this.selected_dropdown_item = null;
       this.dropdown.update("<p>"+this.CAPTIONS.noResultsText+"</p>");
