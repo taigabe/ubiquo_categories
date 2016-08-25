@@ -11,10 +11,10 @@ Ubiquo::Plugin.register(:ubiquo_categories, directory, config) do |config|
   config.add :categories_per_page
   config.add_inheritance :categories_per_page, :elements_per_page
 
-  config.add :categories_access_control, lambda{
+  config.add :categories_access_control, lambda{ |_|
     access_control :DEFAULT => 'categories_management'
   }
-  config.add :categories_permit, lambda{
+  config.add :categories_permit, lambda{ |_|
    permit?('categories_management')
   }
 
