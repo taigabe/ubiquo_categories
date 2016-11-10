@@ -2,25 +2,25 @@ class Ubiquo::CategorySetsController < UbiquoController
 
   ubiquo_config_call :categories_access_control, {:context => :ubiquo_categories}
   before_filter :load_category_set, :only => [:show, :edit, :update, :destroy]
-  
+
   # GET /category_sets
   # GET /category_sets.xml
   def index
-    order_by = params[:order_by] || 'category_sets.id'
-    sort_order = params[:sort_order] || 'desc'
-    
+    params[:order_by] ||= 'category_sets.id'
+    params[:sort_order] ||= 'desc'
+    params[:per_page] ||= Ubiquo::Config.context(:ubiquo_categories).get(:category_sets_per_page)
     filters = {
-      "per_page" => Ubiquo::Config.context(:ubiquo_categories).get(:category_sets_per_page),
-      "order_by" => order_by,
-      "sort_order" => sort_order
+      "per_page" => params[:per_page],
+      "order_by" => params[:order_by],
+      "sort_order" => params[:sort_order]
     }
 
     @category_sets_pages, @category_sets = CategorySet.paginated_filtered_search(params.merge(filters))
 
     @can_manage = Ubiquo::Config.context(:ubiquo_categories).get(:administrable_category_sets)
-    
+
     respond_to do |format|
-      format.html # index.html.erb  
+      format.html # index.html.erb
       format.xml  {
         render :xml => @category_sets
       }
