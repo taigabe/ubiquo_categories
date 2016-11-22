@@ -21,7 +21,7 @@ module UbiquoCategories
           :class => "group relation-selector relation-type-#{selector_type}"
         })
         if object.respond_to?(:required_fields) && object.required_fields.include?(key) && options[:required_field].nil?
-          options[:required_field] = true
+          options[:required_field] = true if !options.key?(:required) || options[:required]
         end
         if !object.try(:errors).try(:on, key).nil?
             html_options[:class] ||= ""
